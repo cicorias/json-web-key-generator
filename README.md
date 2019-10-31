@@ -1,13 +1,13 @@
-json-web-key-generator
-======================
+# json-web-key-generator
+A command-line Java-based generator for JSON Web Keys (JWK) and JSON Private/Shared Keys (JPSKs).
 
-A commandline Java-based generator for JSON Web Keys (JWK) and JSON Private/Shared Keys (JPSKs).
+## Getting Started
 
-=====================
+To compile, run `mvn package`.
+This will generate a `json-web-key-generator.jar` in the `target` directory.
 
-To compile, run `mvn package`. This will generate a json-web-key-generator-0.4-SNAPSHOT-jar-with-dependencies.jar in the /target directory.
-
-To generate a key, run `java -jar json-web-key-generator-0.4-SNAPSHOT-jar-with-dependencies.jar -t <keytype>`. Several other arguments are defined which may be required depending on your key type:
+To generate a key, run `java -jar json-web-key-generator.jar -t <keytype>`.
+Several other arguments are defined which may be required depending on your key type:
 
 ```
  -a <arg>   Algorithm (optional)
@@ -24,3 +24,6 @@ To generate a key, run `java -jar json-web-key-generator-0.4-SNAPSHOT-jar-with-d
  -t <arg>   Key Type, one of: RSA, oct, EC
  -u <arg>   Usage, one of: enc, sig (optional)
 ```
+
+## Use Docker
+When using the docker image and write to a file you must mount that file in the docker container.
