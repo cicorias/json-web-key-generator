@@ -20,7 +20,7 @@ package org.mitre.jose.jwk;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.interfaces.RSAPublicKey;
 
 import com.nimbusds.jose.Algorithm;
@@ -39,18 +39,22 @@ public class RSAKeyMaker {
 	 * @param kid
 	 * @return
 	 */
-	public static RSAKey make(Integer keySize, KeyUse keyUse, Algorithm keyAlg,
-			String kid) {
+	public static RSAKey make(Integer keySize, KeyUse keyUse, Algorithm keyAlg, String kid) {
+
 		try {
 			KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
 			generator.initialize(keySize);
 			KeyPair kp = generator.generateKeyPair();
 
 			RSAPublicKey pub = (RSAPublicKey) kp.getPublic();
-			RSAPrivateKey priv = (RSAPrivateKey) kp.getPrivate();
+			RSAPrivateCrtKey priv = (RSAPrivateCrtKey) kp.getPrivate();
 
-			return new RSAKey.Builder(pub).privateKey(priv)
-					.keyUse(keyUse).algorithm(keyAlg).keyID(kid).build();
+			return new RSAKey.Builder(pub)
+					.privateKey(priv)
+					.keyUse(keyUse)
+					.algorithm(keyAlg)
+					.keyID(kid)
+					.build();
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalStateException("The RSA Algorithm provider could not be found.", e);
 		}

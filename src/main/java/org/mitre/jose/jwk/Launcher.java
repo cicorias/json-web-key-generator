@@ -21,9 +21,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.Security;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -31,8 +34,10 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -52,31 +57,31 @@ public class Launcher {
 
 	private static Options options;
 
+	private static List<Curve> ecCurves = Arrays.asList(Curve.P_256, Curve.SECP256K1, Curve.P_384, Curve.P_521);
+
+	private static List<Curve> okpCurves = Arrays.asList(Curve.Ed25519, Curve.Ed448, Curve.X25519, Curve.X448);
+
 	public static void main(String[] args) {
+
+		Security.addProvider(new BouncyCastleProvider());
 
 		options = new Options();
 
-		options.addOption("t", true,
-				"Key Type, one of: " + KeyType.RSA.getValue() + ", "
-						+ KeyType.OCT.getValue() + ", "
-						+ KeyType.EC.getValue());
+		options.addOption("t", true, "Key Type, one of: " + KeyType.RSA.getValue() + ", " + KeyType.OCT.getValue()
+				+ ", " + KeyType.EC.getValue() + ", " + KeyType.OKP.getValue());
 		options.addOption("s", true,
 				"Key Size in bits, required for RSA and oct key types. Must be an integer divisible by 8");
 		options.addOption("u", true, "Usage, one of: enc, sig (optional)");
 		options.addOption("a", true, "Algorithm (optional)");
-		options.addOption("i", true,
-				"Key ID (optional), one will be generated if not defined");
-		options.addOption("I", false,
-				"Don't generate a Key ID if none defined");
+		options.addOption("i", true, "Key ID (optional), one will be generated if not defined");
+		options.addOption("I", false, "Don't generate a Key ID if none defined");
 		options.addOption("p", false, "Display public key separately");
-		options.addOption("c", true,
-				"Key Curve, required for EC key type. Must be one of "
-						+ Curve.P_256 + ", " + Curve.P_384 + ", "
-						+ Curve.P_521);
+		options.addOption("c", true, "Key Curve, required for EC or OKP key type. Must be one of "
+				+ ecCurves.stream().map(Curve::toString).collect(Collectors.joining(", ")) + " for EC keys or one of "
+				+ okpCurves.stream().map(Curve::toString).collect(Collectors.joining(", ")) + " for OKP keys.");
 		options.addOption("S", false, "Wrap the generated key in a KeySet");
 		options.addOption("o", true,
-				"Write output to file (will append to existing KeySet if -S is used), No Display of Key "
-						+ "Material");
+				"Write output to file (will append to existing KeySet if -S is used), No Display of Key Material");
 
 		CommandLineParser parser = new DefaultParser();
 		try {
@@ -109,9 +114,7 @@ public class Launcher {
 				} else if (use.equals("enc")) {
 					keyUse = KeyUse.ENCRYPTION;
 				} else {
-					printUsageAndExit(
-							"Invalid key usage, must be 'sig' or 'enc', got "
-									+ use);
+					printUsageAndExit("Invalid key usage, must be 'sig' or 'enc', got " + use);
 				}
 			}
 
@@ -129,41 +132,48 @@ public class Launcher {
 			if (keyType.equals(KeyType.RSA)) {
 				// surrounding try/catch catches numberformatexception from this
 				if (Strings.isNullOrEmpty(size)) {
-					printUsageAndExit(
-							"Key size (in bits) is required for key type "
-									+ keyType);
+					printUsageAndExit("Key size (in bits) is required for key type " + keyType);
 				}
 
 				Integer keySize = Integer.decode(size);
 				if (keySize % 8 != 0) {
-					printUsageAndExit(
-							"Key size (in bits) must be divisible by 8, got "
-									+ keySize);
+					printUsageAndExit("Key size (in bits) must be divisible by 8, got " + keySize);
 				}
 
 				jwk = RSAKeyMaker.make(keySize, keyUse, keyAlg, kid);
 			} else if (keyType.equals(KeyType.OCT)) {
 				// surrounding try/catch catches numberformatexception from this
 				if (Strings.isNullOrEmpty(size)) {
-					printUsageAndExit(
-							"Key size (in bits) is required for key type "
-									+ keyType);
+					printUsageAndExit("Key size (in bits) is required for key type " + keyType);
 				}
 				Integer keySize = Integer.decode(size);
 				if (keySize % 8 != 0) {
-					printUsageAndExit(
-							"Key size (in bits) must be divisible by 8, got "
-									+ keySize);
+					printUsageAndExit("Key size (in bits) must be divisible by 8, got " + keySize);
 				}
 
 				jwk = OctetSequenceKeyMaker.make(keySize, keyUse, keyAlg, kid);
 			} else if (keyType.equals(KeyType.EC)) {
 				if (Strings.isNullOrEmpty(crv)) {
-					printUsageAndExit(
-							"Curve is required for key type " + keyType);
+					printUsageAndExit("Curve is required for key type " + keyType);
 				}
 				Curve keyCurve = Curve.parse(crv);
+
+				if (!ecCurves.contains(keyCurve)) {
+					printUsageAndExit("Curve " + crv + " is not valid for key type " + keyType);
+				}
+
 				jwk = ECKeyMaker.make(keyCurve, keyUse, keyAlg, kid);
+			} else if (keyType.equals(KeyType.OKP)) {
+				if (Strings.isNullOrEmpty(crv)) {
+					printUsageAndExit("Curve is required for key type " + keyType);
+				}
+				Curve keyCurve = Curve.parse(crv);
+
+				if (!okpCurves.contains(keyCurve)) {
+					printUsageAndExit("Curve " + crv + " is not valid for key type " + keyType);
+				}
+
+				jwk = OKPKeyMaker.make(keyCurve, keyUse, keyAlg, kid);
 			} else {
 				printUsageAndExit("Unknown key type: " + keyType);
 			}
@@ -198,11 +208,9 @@ public class Launcher {
 		} catch (ParseException e) {
 			printUsageAndExit("Failed to parse arguments: " + e.getMessage());
 		} catch (java.text.ParseException e) {
-			printUsageAndExit(
-					"Could not parse existing KeySet: " + e.getMessage());
+			printUsageAndExit("Could not parse existing KeySet: " + e.getMessage());
 		} catch (IOException e) {
-			printUsageAndExit(
-					"Could not read existing KeySet: " + e.getMessage());
+			printUsageAndExit("Could not read existing KeySet: " + e.getMessage());
 		}
 	}
 
@@ -211,31 +219,26 @@ public class Launcher {
 		return prefix + (System.currentTimeMillis() / 1000);
 	}
 
-	private static void writeKeyToFile(boolean keySet, String outFile, JWK jwk,
-			Gson gson) throws IOException, java.text.ParseException {
+	private static void writeKeyToFile(boolean keySet, String outFile, JWK jwk, Gson gson)
+			throws IOException, java.text.ParseException {
 		JsonElement json;
 		File output = new File(outFile);
 		if (keySet) {
-			List<JWK> existingKeys = output.exists()
-					? JWKSet.load(output).getKeys()
-					: Collections.<JWK> emptyList();
-			List<JWK> jwkList = new ArrayList<JWK>(existingKeys);
+			List<JWK> existingKeys = output.exists() ? JWKSet.load(output).getKeys() : Collections.<JWK> emptyList();
+			List<JWK> jwkList = new ArrayList<>(existingKeys);
 			jwkList.add(jwk);
 			JWKSet jwkSet = new JWKSet(jwkList);
-			json = JsonParser
-					.parseString(jwkSet.toJSONObject(false).toJSONString());
+			json = JsonParser.parseString(jwkSet.toJSONObject(false).toJSONString());
 		} else {
 			json = JsonParser.parseString(jwk.toJSONString());
 		}
-		Files.write(output.toPath(),
-				gson.toJson(json).getBytes(StandardCharsets.UTF_8));
+		Files.write(output.toPath(), gson.toJson(json).getBytes(StandardCharsets.UTF_8));
 	}
 
 	private static void printKey(boolean keySet, JWK jwk, Gson gson) {
 		if (keySet) {
 			JWKSet jwkSet = new JWKSet(jwk);
-			JsonElement json = JsonParser
-					.parseString(jwkSet.toJSONObject(false).toJSONString());
+			JsonElement json = JsonParser.parseString(jwkSet.toJSONObject(false).toJSONString());
 			System.out.println(gson.toJson(json));
 		} else {
 			JsonElement json = JsonParser.parseString(jwk.toJSONString());
@@ -253,10 +256,11 @@ public class Launcher {
 			System.err.println(message);
 		}
 
+		List<String> optionOrder = ImmutableList.of("t", "s", "c", "u", "a", "i", "I", "p", "S", "o");
+
 		HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp(
-				"java -jar json-web-key-generator.jar -t <keyType> [options]",
-				options);
+		formatter.setOptionComparator((o1, o2) -> optionOrder.indexOf(o1.getOpt()) - optionOrder.indexOf(o2.getOpt()));
+		formatter.printHelp("java -jar json-web-key-generator.jar -t <keyType> [options]", options);
 
 		// kill the program
 		System.exit(1);
