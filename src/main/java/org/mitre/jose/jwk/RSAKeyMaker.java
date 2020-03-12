@@ -40,7 +40,6 @@ public class RSAKeyMaker {
 	 * @return
 	 */
 	public static RSAKey make(Integer keySize, KeyUse keyUse, Algorithm keyAlg, String kid) {
-
 		try {
 			KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
 			generator.initialize(keySize);

@@ -42,8 +42,7 @@ public class ECKeyMaker {
 	 * @param kid
 	 * @return
 	 */
-	public static ECKey make(Curve crv, KeyUse keyUse, Algorithm keyAlg,
-			String kid) {
+	public static ECKey make(Curve crv, KeyUse keyUse, Algorithm keyAlg, String kid) {
 		try {
 			ECParameterSpec ecSpec = crv.toECParameterSpec();
 
@@ -55,15 +54,11 @@ public class ECKeyMaker {
 			ECPublicKey pub = (ECPublicKey) kp.getPublic();
 			ECPrivateKey priv = (ECPrivateKey) kp.getPrivate();
 
-			return new ECKey.Builder(crv, pub).privateKey(priv).keyID(kid)
-					.algorithm(keyAlg).keyUse(keyUse).build();
+			return new ECKey.Builder(crv, pub).privateKey(priv).keyID(kid).algorithm(keyAlg).keyUse(keyUse).build();
 		} catch (InvalidAlgorithmParameterException e) {
 			throw new IllegalArgumentException(e);
 		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(
-					"The EC Algorithm provider could not be found.", e);
+			throw new IllegalStateException("The EC Algorithm provider could not be found.", e);
 		}
-
 	}
-
 }

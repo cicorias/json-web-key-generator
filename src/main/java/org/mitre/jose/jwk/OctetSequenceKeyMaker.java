@@ -34,8 +34,7 @@ public class OctetSequenceKeyMaker {
 	 *            in bits
 	 * @return
 	 */
-	public static OctetSequenceKey make(Integer keySize, KeyUse use,
-			Algorithm alg, String kid) {
+	public static OctetSequenceKey make(Integer keySize, KeyUse use, Algorithm alg, String kid) {
 
 		// holder for the random bytes
 		byte[] bytes = new byte[keySize / 8];
@@ -47,8 +46,7 @@ public class OctetSequenceKeyMaker {
 		Base64URL encoded = Base64URL.encode(bytes);
 
 		// make a key
-		return new OctetSequenceKey.Builder(
-				encoded).keyID(kid).algorithm(alg).keyUse(use).build();
+		return new OctetSequenceKey.Builder(encoded).keyID(kid).algorithm(alg).keyUse(use).build();
 	}
 
 }
