@@ -1,5 +1,21 @@
-# json-web-key-generator [![Docker Pulls](https://img.shields.io/docker/pulls/legion2/json-web-key-generator)](https://hub.docker.com/r/legion2/json-web-key-generator)
+# json-web-key-generator [![Docker Pulls](https://img.shields.io/docker/pulls/cicorias/json-web-key-generator)](https://hub.docker.com/r/cicorias/json-web-key-generator)
 A command-line Java-based generator for JSON Web Keys (JWK) and JSON Private/Shared Keys (JPSKs).
+
+
+# Example runs of this container:
+
+```
+# generate RSA keys and wrtie to existing JSON file of keys (keysets)
+docker run -it --rm -v ${PWD}:/keys cicorias/json-web-key-generator -t RSA -s 2048 -u sig -o /keys/jwks.json -S
+
+# generate and display to console the result - in "keys"  format.
+docker run -it --rm -v ${PWD}:/keys cicorias/json-web-key-generator -t RSA -s 2048 -u sig  -S -p
+
+# same but just emit the json object for full private/public and public on its own.
+docker run -it --rm -v ${PWD}:/keys cicorias/json-web-key-generator -t RSA -s 2048 -u sig  -p
+
+
+```
 
 ## Getting Started
 
